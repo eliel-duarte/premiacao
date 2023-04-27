@@ -1,0 +1,21 @@
+{
+  "background_color": "#191a19",
+  "description": "Cálcula a premiação de um torneio",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Cálculo de Premiação",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Premiação",
+  "start_url": "/",
+  "theme_color": "#1E5128",
+  "categories": [
+    "finance",
+    "games"
+  ],
+  "screenshots": [],
+  "icons": [],
+  "shortcuts": [],
+  "iarc_rating_id": "18+",
+  "prefer_related_applications": false
+}
