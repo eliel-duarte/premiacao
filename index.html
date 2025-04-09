@@ -28,6 +28,8 @@
       </div>
       <div class="col-12">
         <button type="submit" class="btn btn-primary">Calcular</button>
+        <button type="button" class="btn btn-secondary ms-2" onclick="ajustarExponente(-0.1)">Menos Agressivo</button>
+        <button type="button" class="btn btn-secondary ms-2" onclick="ajustarExponente(0.1)">Mais Agressivo</button>
       </div>
     </form>
 
@@ -58,6 +60,13 @@
   </div>
 
   <script>
+    let exponent = 1.2;
+
+    function ajustarExponente(delta) {
+      exponent = Math.max(0.5, Math.min(3, exponent + delta));
+      document.getElementById("formPremiacao").dispatchEvent(new Event("submit"));
+    }
+
     function arredondar(valor) {
       if (valor < 100) return Math.round(valor / 1) * 1;
       if (valor < 500) return Math.round(valor / 5) * 5;
@@ -72,7 +81,6 @@
       let premiados = Math.max(1, Math.floor(jogadores * percentualPremiados) + 1);
 
       const premioDisponivel = premioTotal * (1 - rakePercentual / 100);
-      const exponent = 1.2;
       let pesos = [];
       let somaPesos = 0;
       for (let i = 1; i <= premiados; i++) {
