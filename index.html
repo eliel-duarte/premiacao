@@ -1,109 +1,108 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Premiação Poker</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Distribuição de Premiação - Poker</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { padding: 2rem; }
-    .resultado { margin-top: 2rem; }
+    body { background-color: #f8f9fa; padding: 2rem; }
+    .tabela-container { margin-top: 2rem; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 class="mb-4">Distribuição de Premiação - Torneio de Poker</h1>
-
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label for="valorPremiacao" class="form-label">Valor Total (Prize Pool)</label>
-        <input type="number" class="form-control" id="valorPremiacao" placeholder="Ex: 1000">
-      </div>
-      <div class="col-md-4">
-        <label for="numeroJogadores" class="form-label">Número de Jogadores</label>
-        <input type="number" class="form-control" id="numeroJogadores" placeholder="Ex: 10">
-      </div>
-      <div class="col-md-4">
-        <label for="buyin" class="form-label">Buy-in do Torneio</label>
-        <input type="number" class="form-control" id="buyin" placeholder="Ex: 100">
+    <h2 class="mb-4">Calculadora de Premiação de Torneio</h2>
+    <form id="formPremiacao" class="row g-3">
+      <div class="col-md-6">
+        <label for="jogadores" class="form-label">Quantidade de Jogadores</label>
+        <input type="number" class="form-control" id="jogadores" value="100" min="2">
       </div>
       <div class="col-md-6">
-        <label for="rake" class="form-label">% Rake (opcional)</label>
-        <input type="number" class="form-control" id="rake" placeholder="Ex: 10">
+        <label for="premioTotal" class="form-label">Premiação Total (R$)</label>
+        <input type="number" class="form-control" id="premioTotal" value="10000" step="0.01">
       </div>
-      <div class="col-md-6 d-flex align-items-end justify-content-start gap-2">
-        <label class="form-label mb-0">Agressividade:</label>
-        <button class="btn btn-outline-secondary" onclick="ajustarAgressividade(-0.1)">-</button>
-        <span id="agressividade">2.0</span>
-        <button class="btn btn-outline-secondary" onclick="ajustarAgressividade(0.1)">+</button>
+      <div class="col-12">
+        <button type="submit" class="btn btn-primary">Calcular</button>
       </div>
+    </form>
+
+    <div class="tabela-container">
+      <table class="table table-striped mt-4" id="tabelaPremiacao">
+        <thead>
+          <tr>
+            <th>Posição</th>
+            <th>Premiação (R$)</th>
+            <th>% do Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
-
-    <button class="btn btn-primary mt-4" onclick="calcularPremiacao()">Calcular Premiação</button>
-
-    <div class="resultado" id="resultado"></div>
   </div>
 
   <script>
-    let baseExponencial = 2.0;
+    function calcularPremiacao(jogadores, premioTotal) {
+      const percentualPremiados = 0.15;
+      let premiados = Math.max(1, Math.floor(jogadores * percentualPremiados));
 
-    function ajustarAgressividade(valor) {
-      baseExponencial = Math.max(1.1, baseExponencial + valor);
-      document.getElementById("agressividade").innerText = baseExponencial.toFixed(1);
-    }
-
-    function calcularPremiacao() {
-      const valorTotalBruto = parseFloat(document.getElementById("valorPremiacao").value);
-      const jogadores = parseInt(document.getElementById("numeroJogadores").value);
-      const buyin = parseFloat(document.getElementById("buyin").value);
-      const rake = parseFloat(document.getElementById("rake").value) || 0;
-
-      if (isNaN(valorTotalBruto) || isNaN(jogadores) || isNaN(buyin) || valorTotalBruto <= 0 || jogadores <= 0 || buyin <= 0) {
-        alert("Preencha todos os campos corretamente.");
-        return;
-      }
-
-      const valorTotalLiquido = valorTotalBruto * (1 - rake / 100);
-      const pagos = Math.max(1, Math.floor(jogadores * 0.167) + 1);
-      const pesos = [];
-
-      let totalPeso = 0;
-      for (let i = 0; i < pagos; i++) {
-        const peso = Math.pow(baseExponencial, pagos - i - 1);
+      const exponent = 1.2;
+      let pesos = [];
+      let somaPesos = 0;
+      for (let i = 1; i <= premiados; i++) {
+        const peso = 1 / Math.pow(i, exponent);
         pesos.push(peso);
-        totalPeso += peso;
+        somaPesos += peso;
       }
 
-      let premios = [];
-      let totalArredondado = 0;
+      let premiacao = pesos.map(p => (p / somaPesos) * premioTotal);
 
-      for (let i = 0; i < pagos - 1; i++) {
-        let premio = (pesos[i] / totalPeso) * valorTotalLiquido;
-        premio = arredondarSuave(premio);
-        premios.push(premio);
-        totalArredondado += premio;
+      let resultado = [];
+      let grupoAtual = { inicio: 1, fim: 1, valor: premiacao[0], totalGrupo: premiacao[0] };
+      let grupoPesos = [premiacao[0]];
+
+      for (let i = 1; i < premiacao.length; i++) {
+        const atual = premiacao[i];
+        const anterior = grupoAtual.valor;
+        const percentualDif = Math.abs(atual - anterior) / anterior;
+
+        if (percentualDif < 0.03) {
+          grupoAtual.fim = i + 1;
+          grupoPesos.push(atual);
+        } else {
+          const totalGrupo = grupoPesos.reduce((a, b) => a + b, 0);
+          resultado.push({
+            posicao: grupoAtual.inicio === grupoAtual.fim ? `${grupoAtual.inicio}º` : `${grupoAtual.inicio}º - ${grupoAtual.fim}º`,
+            valor: (grupoAtual.valor).toFixed(2),
+            percentual: ((totalGrupo / premioTotal) * 100).toFixed(2) + "%"
+          });
+          grupoAtual = { inicio: i + 1, fim: i + 1, valor: atual, totalGrupo: atual };
+          grupoPesos = [atual];
+        }
       }
 
-      // Último colocado recebe o restante
-      let ultimoPremio = valorTotalLiquido - totalArredondado;
-      premios.push(ultimoPremio);
-
-      // Mostrar resultado
-      const resultadoDiv = document.getElementById("resultado");
-      resultadoDiv.innerHTML = `<h4>Pagando os top ${pagos} jogadores:</h4><ul class="list-group">`;
-
-      premios.forEach((premio, idx) => {
-        resultadoDiv.innerHTML += `<li class="list-group-item">#${idx + 1} - R$ ${premio.toFixed(2)}</li>`;
+      const totalGrupo = grupoPesos.reduce((a, b) => a + b, 0);
+      resultado.push({
+        posicao: grupoAtual.inicio === grupoAtual.fim ? `${grupoAtual.inicio}º` : `${grupoAtual.inicio}º - ${grupoAtual.fim}º`,
+        valor: (grupoAtual.valor).toFixed(2),
+        percentual: ((totalGrupo / premioTotal) * 100).toFixed(2) + "%"
       });
 
-      resultadoDiv.innerHTML += `</ul><p class="mt-2"><strong>Total líquido após rake:</strong> R$ ${valorTotalLiquido.toFixed(2)}</p>`;
+      return resultado;
     }
 
-    function arredondarSuave(valor) {
-      if (valor <= 100) return Math.round(valor);
-      if (valor <= 500) return Math.round(valor / 5) * 5;
-      if (valor <= 2000) return Math.round(valor / 10) * 10;
-      return Math.round(valor / 50) * 50;
-    }
+    document.getElementById("formPremiacao").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const jogadores = parseInt(document.getElementById("jogadores").value);
+      const premioTotal = parseFloat(document.getElementById("premioTotal").value);
+      const resultado = calcularPremiacao(jogadores, premioTotal);
+
+      const corpoTabela = document.querySelector("#tabelaPremiacao tbody");
+      corpoTabela.innerHTML = "";
+      resultado.forEach(linha => {
+        corpoTabela.innerHTML += `<tr><td>${linha.posicao}</td><td>R$ ${linha.valor}</td><td>${linha.percentual}</td></tr>`;
+      });
+    });
   </script>
 </body>
 </html>
