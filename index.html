@@ -11,56 +11,108 @@
 </head>
 <body>
   <div class="container">
-    <h1 class="mb-4">Distribuição</h1>
-    
+    <h1 class="mb-4">Distribuição de Premiação - Torneio de Poker</h1>
+
     <div class="row g-3">
-      <div class="col-md-6">
-        <label for="valorPremiacao" class="form-label">Valor Total da Premiação</label>
+      <div class="col-md-4">
+        <label for="valorPremiacao" class="form-label">Valor Total (Prize Pool)</label>
         <input type="number" class="form-control" id="valorPremiacao" placeholder="Ex: 1000">
       </div>
-      <div class="col-md-6">
+      <div class="col-md-4">
         <label for="numeroJogadores" class="form-label">Número de Jogadores</label>
         <input type="number" class="form-control" id="numeroJogadores" placeholder="Ex: 10">
       </div>
+      <div class="col-md-4">
+        <label for="buyin" class="form-label">Buy-in do Torneio</label>
+        <input type="number" class="form-control" id="buyin" placeholder="Ex: 100">
+      </div>
+      <div class="col-md-6">
+        <label for="rake" class="form-label">% Rake (opcional)</label>
+        <input type="number" class="form-control" id="rake" placeholder="Ex: 10">
+      </div>
+      <div class="col-md-6 d-flex align-items-end justify-content-start gap-2">
+        <label class="form-label mb-0">Agressividade:</label>
+        <button class="btn btn-outline-secondary" onclick="ajustarAgressividade(-0.1)">-</button>
+        <span id="agressividade">2.0</span>
+        <button class="btn btn-outline-secondary" onclick="ajustarAgressividade(0.1)">+</button>
+      </div>
     </div>
 
-    <button class="btn btn-primary mt-4" onclick="calcularPremiacao()">Calcular</button>
+    <button class="btn btn-primary mt-4" onclick="calcularPremiacao()">Calcular Premiação</button>
 
     <div class="resultado" id="resultado"></div>
   </div>
 
   <script>
-    function calcularPremiacao() {
-      const valorTotal = parseFloat(document.getElementById("valorPremiacao").value);
-      const jogadores = parseInt(document.getElementById("numeroJogadores").value);
+    let baseExponencial = 2.0;
 
-      if (isNaN(valorTotal) || isNaN(jogadores) || valorTotal <= 0 || jogadores <= 0) {
-        alert("Por favor, insira valores válidos.");
+    function ajustarAgressividade(valor) {
+      baseExponencial = Math.max(1.1, baseExponencial + valor);
+      document.getElementById("agressividade").innerText = baseExponencial.toFixed(1);
+    }
+
+    function calcularPremiacao() {
+      const valorTotalBruto = parseFloat(document.getElementById("valorPremiacao").value);
+      const jogadores = parseInt(document.getElementById("numeroJogadores").value);
+      const buyin = parseFloat(document.getElementById("buyin").value);
+      const rake = parseFloat(document.getElementById("rake").value) || 0;
+
+      if (isNaN(valorTotalBruto) || isNaN(jogadores) || isNaN(buyin) || valorTotalBruto <= 0 || jogadores <= 0 || buyin <= 0) {
+        alert("Preencha todos os campos corretamente.");
         return;
       }
 
-      const topPercentual = 0.167; // Premia o top 30%
-      const pagos = Math.max(1, Math.floor(jogadores * topPercentual))+1;
+      const valorTotalLiquido = valorTotalBruto * (1 - rake / 100);
+      const pagos = Math.max(1, Math.floor(jogadores * 0.167) + 1);
       const pesos = [];
 
-      // Distribuição proporcional decrescente (peso linear)
       let totalPeso = 0;
       for (let i = 0; i < pagos; i++) {
-        const peso = Math.pow(2, pagos - i - 1); // Ex: 2^(2), 2^(1), 2^(0) = 4,2,1
+        const peso = Math.pow(baseExponencial, pagos - i - 1);
         pesos.push(peso);
         totalPeso += peso;
       }
 
+      let premios = [];
+      let totalArredondado = 0;
 
+      // Arredondar valores com base no valor total
+      const baseArredondamento = definirBaseArredondamento(valorTotalLiquido);
+
+      for (let i = 0; i < pagos - 1; i++) {
+        let premio = (pesos[i] / totalPeso) * valorTotalLiquido;
+        premio = Math.floor(premio / baseArredondamento) * baseArredondamento;
+        premios.push(premio);
+        totalArredondado += premio;
+      }
+
+      // Último colocado recebe o restante
+      let ultimoPremio = (valorTotalLiquido - totalArredondado);
+
+      // Garante que o último ganhe pelo menos 1.5x o buy-in
+      if (ultimoPremio < buyin * 1.5) {
+        alert("Configuração atual resulta em premiação final menor que 1.5x o buy-in. Aumente o prêmio ou ajuste a agressividade.");
+        return;
+      }
+
+      premios.push(ultimoPremio);
+
+      // Mostrar resultado
       const resultadoDiv = document.getElementById("resultado");
       resultadoDiv.innerHTML = `<h4>Pagando os top ${pagos} jogadores:</h4><ul class="list-group">`;
 
-      pesos.forEach((peso, idx) => {
-        const valor = ((peso / totalPeso) * valorTotal).toFixed(2);
-        resultadoDiv.innerHTML += `<li class="list-group-item">#${idx + 1} - R$ ${valor}</li>`;
+      premios.forEach((premio, idx) => {
+        resultadoDiv.innerHTML += `<li class="list-group-item">#${idx + 1} - R$ ${premio.toFixed(2)}</li>`;
       });
 
-      resultadoDiv.innerHTML += "</ul>";
+      resultadoDiv.innerHTML += `</ul><p class="mt-2"><strong>Total líquido após rake:</strong> R$ ${valorTotalLiquido.toFixed(2)}</p>`;
+    }
+
+    function definirBaseArredondamento(valor) {
+      if (valor <= 100) return 1;
+      if (valor <= 1000) return 10;
+      if (valor <= 10000) return 100;
+      return 1000;
     }
   </script>
 </body>
