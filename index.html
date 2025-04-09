@@ -66,7 +66,7 @@
         const mediaGrupo = grupoValores.reduce((a, b) => a + b, 0) / grupoValores.length;
         const percentualDif = Math.abs(atual - mediaGrupo) / mediaGrupo;
 
-        if (percentualDif < 0.03) {
+        if (percentualDif < 0.25) {
           grupoAtual.fim = i + 1;
           grupoValores.push(atual);
         } else {
