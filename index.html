@@ -76,25 +76,15 @@
       let premios = [];
       let totalArredondado = 0;
 
-      // Arredondar valores com base no valor total
-      const baseArredondamento = definirBaseArredondamento(valorTotalLiquido);
-
       for (let i = 0; i < pagos - 1; i++) {
         let premio = (pesos[i] / totalPeso) * valorTotalLiquido;
-        premio = Math.floor(premio / baseArredondamento) * baseArredondamento;
+        premio = arredondarSuave(premio);
         premios.push(premio);
         totalArredondado += premio;
       }
 
       // Último colocado recebe o restante
-      let ultimoPremio = (valorTotalLiquido - totalArredondado);
-
-      // Garante que o último ganhe pelo menos 1.5x o buy-in
-      if (ultimoPremio < buyin * 1.5) {
-        alert("Configuração atual resulta em premiação final menor que 1.5x o buy-in. Aumente o prêmio ou ajuste a agressividade.");
-        return;
-      }
-
+      let ultimoPremio = valorTotalLiquido - totalArredondado;
       premios.push(ultimoPremio);
 
       // Mostrar resultado
@@ -108,11 +98,11 @@
       resultadoDiv.innerHTML += `</ul><p class="mt-2"><strong>Total líquido após rake:</strong> R$ ${valorTotalLiquido.toFixed(2)}</p>`;
     }
 
-    function definirBaseArredondamento(valor) {
-      if (valor <= 100) return 1;
-      if (valor <= 1000) return 10;
-      if (valor <= 10000) return 100;
-      return 1000;
+    function arredondarSuave(valor) {
+      if (valor <= 100) return Math.round(valor);
+      if (valor <= 500) return Math.round(valor / 5) * 5;
+      if (valor <= 2000) return Math.round(valor / 10) * 10;
+      return Math.round(valor / 50) * 50;
     }
   </script>
 </body>
