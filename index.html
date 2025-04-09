@@ -14,13 +14,17 @@
   <div class="container">
     <h2 class="mb-4">Calculadora de Premiação de Torneio</h2>
     <form id="formPremiacao" class="row g-3">
-      <div class="col-md-6">
+      <div class="col-md-4">
         <label for="jogadores" class="form-label">Quantidade de Jogadores</label>
         <input type="number" class="form-control" id="jogadores" value="100" min="2">
       </div>
-      <div class="col-md-6">
+      <div class="col-md-4">
         <label for="premioTotal" class="form-label">Premiação Total (R$)</label>
         <input type="number" class="form-control" id="premioTotal" value="10000" step="0.01">
+      </div>
+      <div class="col-md-4">
+        <label for="rake" class="form-label">Rake (%)</label>
+        <input type="number" class="form-control" id="rake" value="0" step="0.01" min="0">
       </div>
       <div class="col-12">
         <button type="submit" class="btn btn-primary">Calcular</button>
@@ -37,15 +41,37 @@
           </tr>
         </thead>
         <tbody></tbody>
+        <tfoot>
+          <tr>
+            <th>Total</th>
+            <th id="totalPremiacao"></th>
+            <th id="totalPercentual"></th>
+          </tr>
+          <tr>
+            <th>Rake</th>
+            <th id="valorRake"></th>
+            <th id="percentualRake"></th>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
 
   <script>
-    function calcularPremiacao(jogadores, premioTotal) {
+    function arredondar(valor) {
+      if (valor < 100) return Math.round(valor / 1) * 1;
+      if (valor < 500) return Math.round(valor / 5) * 5;
+      if (valor < 1000) return Math.round(valor / 10) * 10;
+      if (valor < 5000) return Math.round(valor / 20) * 20;
+      if (valor < 10000) return Math.round(valor / 50) * 50;
+      return Math.round(valor / 100) * 100;
+    }
+
+    function calcularPremiacao(jogadores, premioTotal, rakePercentual) {
       const percentualPremiados = 0.167;
       let premiados = Math.max(1, Math.floor(jogadores * percentualPremiados) + 1);
 
+      const premioDisponivel = premioTotal * (1 - rakePercentual / 100);
       const exponent = 1.2;
       let pesos = [];
       let somaPesos = 0;
@@ -55,25 +81,36 @@
         somaPesos += peso;
       }
 
-      let premiacao = pesos.map(p => (p / somaPesos) * premioTotal);
+      let premiacaoBruta = pesos.map(p => (p / somaPesos) * premioDisponivel);
+      let premiacaoArredondada = premiacaoBruta.map(arredondar);
+      let somaPremiacao = premiacaoArredondada.reduce((a, b) => a + b, 0);
+
+      let sobra = premioTotal - somaPremiacao;
+      let valorRake = 0;
+
+      if (rakePercentual > 0) {
+        valorRake = sobra;
+      } else {
+        premiacaoArredondada[premiacaoArredondada.length - 1] += sobra;
+      }
 
       let resultado = [];
-      let grupoAtual = { inicio: 1, fim: 1, valor: premiacao[0] };
-      let grupoValores = [premiacao[0]];
+      let grupoAtual = { inicio: 1, fim: 1, valor: premiacaoArredondada[0] };
+      let grupoValores = [premiacaoArredondada[0]];
 
-      for (let i = 1; i < premiacao.length; i++) {
-        const atual = premiacao[i];
+      for (let i = 1; i < premiacaoArredondada.length; i++) {
+        const atual = premiacaoArredondada[i];
         const mediaGrupo = grupoValores.reduce((a, b) => a + b, 0) / grupoValores.length;
         const percentualDif = Math.abs(atual - mediaGrupo) / mediaGrupo;
 
-        if (percentualDif < 0.25) {
+        if (percentualDif < 0.20) {
           grupoAtual.fim = i + 1;
           grupoValores.push(atual);
         } else {
           const totalGrupo = grupoValores.reduce((a, b) => a + b, 0);
           resultado.push({
             posicao: grupoAtual.inicio === grupoAtual.fim ? `${grupoAtual.inicio}º` : `${grupoAtual.inicio}º - ${grupoAtual.fim}º`,
-            valor: (mediaGrupo).toFixed(2),
+            valor: (totalGrupo / grupoValores.length).toFixed(2),
             percentual: ((totalGrupo / premioTotal) * 100).toFixed(2) + "%"
           });
           grupoAtual = { inicio: i + 1, fim: i + 1, valor: atual };
@@ -85,24 +122,31 @@
       const mediaGrupo = totalGrupo / grupoValores.length;
       resultado.push({
         posicao: grupoAtual.inicio === grupoAtual.fim ? `${grupoAtual.inicio}º` : `${grupoAtual.inicio}º - ${grupoAtual.fim}º`,
-        valor: (mediaGrupo).toFixed(2),
+        valor: mediaGrupo.toFixed(2),
         percentual: ((totalGrupo / premioTotal) * 100).toFixed(2) + "%"
       });
 
-      return resultado;
+      return { resultado, somaPremiacao, valorRake };
     }
 
     document.getElementById("formPremiacao").addEventListener("submit", function (e) {
       e.preventDefault();
       const jogadores = parseInt(document.getElementById("jogadores").value);
       const premioTotal = parseFloat(document.getElementById("premioTotal").value);
-      const resultado = calcularPremiacao(jogadores, premioTotal);
+      const rakePercentual = parseFloat(document.getElementById("rake").value);
+
+      const { resultado, somaPremiacao, valorRake } = calcularPremiacao(jogadores, premioTotal, rakePercentual);
 
       const corpoTabela = document.querySelector("#tabelaPremiacao tbody");
       corpoTabela.innerHTML = "";
       resultado.forEach(linha => {
         corpoTabela.innerHTML += `<tr><td>${linha.posicao}</td><td>R$ ${linha.valor}</td><td>${linha.percentual}</td></tr>`;
       });
+
+      document.getElementById("totalPremiacao").innerText = `R$ ${somaPremiacao.toFixed(2)}`;
+      document.getElementById("totalPercentual").innerText = `${((somaPremiacao / premioTotal) * 100).toFixed(2)}%`;
+      document.getElementById("valorRake").innerText = `R$ ${valorRake.toFixed(2)}`;
+      document.getElementById("percentualRake").innerText = `${((valorRake / premioTotal) * 100).toFixed(2)}%`;
     });
   </script>
 </body>
