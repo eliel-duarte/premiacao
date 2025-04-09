@@ -45,10 +45,12 @@
 
       // Distribuição proporcional decrescente (peso linear)
       let totalPeso = 0;
-      for (let i = pagos; i >= 1; i--) {
-        pesos.push(i);
-        totalPeso += i;
+      for (let i = 0; i < pagos; i++) {
+        const peso = Math.pow(2, pagos - i - 1); // Ex: 2^(2), 2^(1), 2^(0) = 4,2,1
+        pesos.push(peso);
+        totalPeso += peso;
       }
+
 
       const resultadoDiv = document.getElementById("resultado");
       resultadoDiv.innerHTML = `<h4>Pagando os top ${pagos} jogadores:</h4><ul class="list-group">`;
