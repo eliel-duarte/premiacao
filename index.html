@@ -43,8 +43,8 @@
 
   <script>
     function calcularPremiacao(jogadores, premioTotal) {
-      const percentualPremiados = 0.15;
-      let premiados = Math.max(1, Math.floor(jogadores * percentualPremiados));
+      const percentualPremiados = 0.167;
+      let premiados = Math.max(1, Math.floor(jogadores * percentualPremiados) + 1);
 
       const exponent = 1.2;
       let pesos = [];
@@ -58,33 +58,34 @@
       let premiacao = pesos.map(p => (p / somaPesos) * premioTotal);
 
       let resultado = [];
-      let grupoAtual = { inicio: 1, fim: 1, valor: premiacao[0], totalGrupo: premiacao[0] };
-      let grupoPesos = [premiacao[0]];
+      let grupoAtual = { inicio: 1, fim: 1, valor: premiacao[0] };
+      let grupoValores = [premiacao[0]];
 
       for (let i = 1; i < premiacao.length; i++) {
         const atual = premiacao[i];
-        const anterior = grupoAtual.valor;
-        const percentualDif = Math.abs(atual - anterior) / anterior;
+        const mediaGrupo = grupoValores.reduce((a, b) => a + b, 0) / grupoValores.length;
+        const percentualDif = Math.abs(atual - mediaGrupo) / mediaGrupo;
 
         if (percentualDif < 0.03) {
           grupoAtual.fim = i + 1;
-          grupoPesos.push(atual);
+          grupoValores.push(atual);
         } else {
-          const totalGrupo = grupoPesos.reduce((a, b) => a + b, 0);
+          const totalGrupo = grupoValores.reduce((a, b) => a + b, 0);
           resultado.push({
             posicao: grupoAtual.inicio === grupoAtual.fim ? `${grupoAtual.inicio}º` : `${grupoAtual.inicio}º - ${grupoAtual.fim}º`,
-            valor: (grupoAtual.valor).toFixed(2),
+            valor: (mediaGrupo).toFixed(2),
             percentual: ((totalGrupo / premioTotal) * 100).toFixed(2) + "%"
           });
-          grupoAtual = { inicio: i + 1, fim: i + 1, valor: atual, totalGrupo: atual };
-          grupoPesos = [atual];
+          grupoAtual = { inicio: i + 1, fim: i + 1, valor: atual };
+          grupoValores = [atual];
         }
       }
 
-      const totalGrupo = grupoPesos.reduce((a, b) => a + b, 0);
+      const totalGrupo = grupoValores.reduce((a, b) => a + b, 0);
+      const mediaGrupo = totalGrupo / grupoValores.length;
       resultado.push({
         posicao: grupoAtual.inicio === grupoAtual.fim ? `${grupoAtual.inicio}º` : `${grupoAtual.inicio}º - ${grupoAtual.fim}º`,
-        valor: (grupoAtual.valor).toFixed(2),
+        valor: (mediaGrupo).toFixed(2),
         percentual: ((totalGrupo / premioTotal) * 100).toFixed(2) + "%"
       });
 
