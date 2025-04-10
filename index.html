@@ -189,7 +189,7 @@
     // Recalcula automaticamente o número de jogadores premiados baseado na fórmula: 16,7% + 1
     function recalcularJogadoresPremiados() {
       const jogadores = parseInt(document.getElementById("jogadores").value);
-      const jp = Math.floor(jogadores * 0.167) + 1;
+      const jp = Math.round(jogadores * 0.167) + 1;
       document.getElementById("jogadoresPremiados").value = jp;
       return jp;
     }
