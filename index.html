@@ -28,6 +28,9 @@
       margin-top: 3rem;
       font-size: 0.9rem;
     }
+    .input-group-text {
+      width: 75px;
+    }
   </style>
 </head>
 <body>
@@ -52,25 +55,31 @@
             <label for="rake" class="form-label">Rake (%)</label>
             <input type="number" class="form-control" id="rake" value="0" step="0.01" min="0">
           </div>
-          
-          <!-- Expoente e Jogadores Premiando -->
+        </div>
+
+        <!-- Agrupamento para Expoente e Jogadores Premiando -->
+        <div class="row mt-3">
           <div class="col-md-3">
             <label for="expoente" class="form-label">Expoente de Premiação</label>
-            <input type="number" class="form-control" id="expoente" value="1.2" step="0.02" min="0.1" max="3.0" readonly>
+            <div class="input-group">
+              <button class="btn btn-outline-primary" id="decreaseExpoente">-</button>
+              <input type="number" class="form-control" id="expoente" value="1.2" step="0.02" min="0.1" max="3.0" readonly>
+              <button class="btn btn-outline-primary" id="increaseExpoente">+</button>
+            </div>
           </div>
 
           <div class="col-md-3">
             <label for="jogadoresPremiados" class="form-label">Jogadores Premiados</label>
-            <input type="number" class="form-control" id="jogadoresPremiados" value="16" readonly>
+            <div class="input-group">
+              <button class="btn btn-outline-success" id="decreaseJogadoresPremiados">-</button>
+              <input type="number" class="form-control" id="jogadoresPremiados" value="16" readonly>
+              <button class="btn btn-outline-success" id="increaseJogadoresPremiados">+</button>
+            </div>
           </div>
-        </div>
 
-        <div class="mt-3">
-          <div class="btn-group">
-            <button class="btn btn-outline-primary" id="decreaseExpoente">Diminuir Expoente</button>
-            <button class="btn btn-outline-primary" id="increaseExpoente">Aumentar Expoente</button>
-            <button class="btn btn-outline-success" id="decreaseJogadoresPremiados">Diminuir Jogadores Premiando</button>
-            <button class="btn btn-outline-success" id="increaseJogadoresPremiados">Aumentar Jogadores Premiando</button>
+          <!-- Botão Calcular -->
+          <div class="col-md-3">
+            <button class="btn btn-primary mt-4" id="calcular">Calcular</button>
           </div>
         </div>
 
@@ -201,28 +210,28 @@
       let expoente = parseFloat(document.getElementById("expoente").value);
       expoente += 0.02;
       document.getElementById("expoente").value = expoente.toFixed(2);
-      atualizarTabela(parseInt(document.getElementById("jogadores").value), jogadoresPremiados, parseFloat(document.getElementById("premioTotal").value), parseFloat(document.getElementById("rake").value), expoente);
     });
 
     document.getElementById("decreaseExpoente").addEventListener("click", function () {
       let expoente = parseFloat(document.getElementById("expoente").value);
       expoente -= 0.02;
       document.getElementById("expoente").value = expoente.toFixed(2);
-      atualizarTabela(parseInt(document.getElementById("jogadores").value), jogadoresPremiados, parseFloat(document.getElementById("premioTotal").value), parseFloat(document.getElementById("rake").value), expoente);
     });
 
     document.getElementById("increaseJogadoresPremiados").addEventListener("click", function () {
       jogadoresPremiados += 1;
       document.getElementById("jogadoresPremiados").value = jogadoresPremiados;
-      atualizarTabela(parseInt(document.getElementById("jogadores").value), jogadoresPremiados, parseFloat(document.getElementById("premioTotal").value), parseFloat(document.getElementById("rake").value), parseFloat(document.getElementById("expoente").value));
     });
 
     document.getElementById("decreaseJogadoresPremiados").addEventListener("click", function () {
       if (jogadoresPremiados > 1) {
         jogadoresPremiados -= 1;
         document.getElementById("jogadoresPremiados").value = jogadoresPremiados;
-        atualizarTabela(parseInt(document.getElementById("jogadores").value), jogadoresPremiados, parseFloat(document.getElementById("premioTotal").value), parseFloat(document.getElementById("rake").value), parseFloat(document.getElementById("expoente").value));
       }
+    });
+
+    document.getElementById("calcular").addEventListener("click", function () {
+      atualizarTabela(parseInt(document.getElementById("jogadores").value), jogadoresPremiados, parseFloat(document.getElementById("premioTotal").value), parseFloat(document.getElementById("rake").value), parseFloat(document.getElementById("expoente").value));
     });
 
     // Inicializa a tabela com os valores padrão
