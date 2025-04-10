@@ -76,12 +76,14 @@
     }
 
     function calcularPremiacao(jogadores, premioTotal, rakePercentual, expoente) {
-      const percentualPremiados = 0.167;
+      const percentualPremiados = 0.167; // 16.7% dos jogadores premiados
       let premiados = Math.max(1, Math.floor(jogadores * percentualPremiados) + 1);
 
       const premioDisponivel = premioTotal * (1 - rakePercentual / 100);
       let pesos = [];
       let somaPesos = 0;
+
+      // Cálculo dos pesos
       for (let i = 1; i <= premiados; i++) {
         const peso = 1 / Math.pow(i, expoente);
         pesos.push(peso);
@@ -110,7 +112,8 @@
         const mediaGrupo = grupoValores.reduce((a, b) => a + b, 0) / grupoValores.length;
         const percentualDif = Math.abs(atual - mediaGrupo) / mediaGrupo;
 
-        if (percentualDif < 0.20) {
+        // Agrupar a partir do 10º colocado
+        if (i >= 9 && percentualDif < 0.20) {
           grupoAtual.fim = i + 1;
           grupoValores.push(atual);
         } else {
