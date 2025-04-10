@@ -28,10 +28,13 @@
       </div>
       <div class="col-12">
         <button type="submit" class="btn btn-primary">Calcular</button>
-        <button type="button" class="btn btn-secondary ms-2" onclick="ajustarExponente(-0.02)">Menos Agressivo</button>
-        <button type="button" class="btn btn-secondary ms-2" onclick="ajustarExponente(0.02)">Mais Agressivo</button>
       </div>
     </form>
+
+    <div class="d-flex mt-4">
+      <button id="aumentarPremiados" class="btn btn-secondary me-2">+1 Jogador Premiado</button>
+      <button id="diminuirPremiados" class="btn btn-secondary">-1 Jogador Premiado</button>
+    </div>
 
     <div class="tabela-container">
       <table class="table table-striped mt-4" id="tabelaPremiacao">
@@ -60,13 +63,6 @@
   </div>
 
   <script>
-    let exponent = 1.2;
-
-    function ajustarExponente(delta) {
-      exponent = Math.max(0.5, Math.min(3, exponent + delta));
-      document.getElementById("formPremiacao").dispatchEvent(new Event("submit"));
-    }
-
     function arredondar(valor) {
       if (valor < 100) return Math.round(valor / 1) * 1;
       if (valor < 500) return Math.round(valor / 5) * 5;
@@ -76,13 +72,14 @@
       return Math.round(valor / 100) * 100;
     }
 
-    function calcularPremiacao(jogadores, premioTotal, rakePercentual) {
+    function calcularPremiacao(jogadores, premioTotal, rakePercentual, premiados) {
       const percentualPremiados = 0.167;
-      let premiados = Math.max(1, Math.floor(jogadores * percentualPremiados) + 1);
-
+      premiados = Math.max(1, Math.floor(jogadores * percentualPremiados) + 1);
       const premioDisponivel = premioTotal * (1 - rakePercentual / 100);
+      const exponent = 1.2;
       let pesos = [];
       let somaPesos = 0;
+
       for (let i = 1; i <= premiados; i++) {
         const peso = 1 / Math.pow(i, exponent);
         pesos.push(peso);
@@ -111,7 +108,7 @@
         const mediaGrupo = grupoValores.reduce((a, b) => a + b, 0) / grupoValores.length;
         const percentualDif = Math.abs(atual - mediaGrupo) / mediaGrupo;
 
-        if (percentualDif < 0.20) {
+        if (i >= 9 && percentualDif < 0.20) { // Agrupamento a partir do 10º
           grupoAtual.fim = i + 1;
           grupoValores.push(atual);
         } else {
@@ -143,7 +140,50 @@
       const premioTotal = parseFloat(document.getElementById("premioTotal").value);
       const rakePercentual = parseFloat(document.getElementById("rake").value);
 
-      const { resultado, somaPremiacao, valorRake } = calcularPremiacao(jogadores, premioTotal, rakePercentual);
+      const premiados = Math.max(1, Math.floor(jogadores * 0.167) + 1);
+      const { resultado, somaPremiacao, valorRake } = calcularPremiacao(jogadores, premioTotal, rakePercentual, premiados);
+
+      const corpoTabela = document.querySelector("#tabelaPremiacao tbody");
+      corpoTabela.innerHTML = "";
+      resultado.forEach(linha => {
+        corpoTabela.innerHTML += `<tr><td>${linha.posicao}</td><td>R$ ${linha.valor}</td><td>${linha.percentual}</td></tr>`;
+      });
+
+      document.getElementById("totalPremiacao").innerText = `R$ ${somaPremiacao.toFixed(2)}`;
+      document.getElementById("totalPercentual").innerText = `${((somaPremiacao / premioTotal) * 100).toFixed(2)}%`;
+      document.getElementById("valorRake").innerText = `R$ ${valorRake.toFixed(2)}`;
+      document.getElementById("percentualRake").innerText = `${((valorRake / premioTotal) * 100).toFixed(2)}%`;
+    });
+
+    document.getElementById("aumentarPremiados").addEventListener("click", function() {
+      const jogadores = parseInt(document.getElementById("jogadores").value);
+      const premioTotal = parseFloat(document.getElementById("premioTotal").value);
+      const rakePercentual = parseFloat(document.getElementById("rake").value);
+
+      document.getElementById("jogadores").value = jogadores + 1;
+      const premiados = Math.max(1, Math.floor((jogadores + 1) * 0.167) + 1);
+      const { resultado, somaPremiacao, valorRake } = calcularPremiacao(jogadores + 1, premioTotal, rakePercentual, premiados);
+
+      const corpoTabela = document.querySelector("#tabelaPremiacao tbody");
+      corpoTabela.innerHTML = "";
+      resultado.forEach(linha => {
+        corpoTabela.innerHTML += `<tr><td>${linha.posicao}</td><td>R$ ${linha.valor}</td><td>${linha.percentual}</td></tr>`;
+      });
+
+      document.getElementById("totalPremiacao").innerText = `R$ ${somaPremiacao.toFixed(2)}`;
+      document.getElementById("totalPercentual").innerText = `${((somaPremiacao / premioTotal) * 100).toFixed(2)}%`;
+      document.getElementById("valorRake").innerText = `R$ ${valorRake.toFixed(2)}`;
+      document.getElementById("percentualRake").innerText = `${((valorRake / premioTotal) * 100).toFixed(2)}%`;
+    });
+
+    document.getElementById("diminuirPremiados").addEventListener("click", function() {
+      const jogadores = parseInt(document.getElementById("jogadores").value);
+      const premioTotal = parseFloat(document.getElementById("premioTotal").value);
+      const rakePercentual = parseFloat(document.getElementById("rake").value);
+
+      document.getElementById("jogadores").value = jogadores - 1;
+      const premiados = Math.max(1, Math.floor((jogadores - 1) * 0.167) + 1);
+      const { resultado, somaPremiacao, valorRake } = calcularPremiacao(jogadores - 1, premioTotal, rakePercentual, premiados);
 
       const corpoTabela = document.querySelector("#tabelaPremiacao tbody");
       corpoTabela.innerHTML = "";
