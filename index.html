@@ -20,20 +20,18 @@
     .tabela-container {
       margin-top: 2rem;
     }
-    .btn-group button {
-      margin-right: 10px;
+    .input-group-text {
+      width: 75px;
     }
     .footer {
       text-align: center;
       margin-top: 3rem;
       font-size: 0.9rem;
     }
-    .input-group-text {
-      width: 75px;
-    }
   </style>
 </head>
 <body>
+
   <div class="container">
     <div class="card shadow-lg">
       <div class="card-header text-center">
@@ -41,7 +39,7 @@
       </div>
       <div class="card-body">
         <div class="row">
-          <!-- Inputs editáveis -->
+          <!-- Campos editáveis -->
           <div class="col-md-3">
             <label for="jogadores" class="form-label">Jogadores Totais</label>
             <input type="number" class="form-control" id="jogadores" value="100" min="2">
@@ -56,7 +54,7 @@
           </div>
         </div>
 
-        <!-- Controle de Expoente e Jogadores Premiadas (somente leitura) -->
+        <!-- Controles de Expoente e Jogadores Premiadas (somente leitura) -->
         <div class="row mt-3">
           <div class="col-md-3">
             <label for="expoente" class="form-label">Expoente de Premiação</label>
@@ -66,7 +64,6 @@
               <button class="btn btn-outline-primary" id="increaseExpoente">+</button>
             </div>
           </div>
-
           <div class="col-md-3">
             <label for="jogadoresPremiados" class="form-label">Jogadores Premiadas</label>
             <div class="input-group">
@@ -74,10 +71,8 @@
               <input type="number" class="form-control" id="jogadoresPremiados" value="17" readonly>
               <button class="btn btn-outline-success" id="increaseJogadoresPremiados">+</button>
             </div>
-            <!-- O valor inicial 17 vem de: floor(100*0.167)+1 = floor(16.7)+1 = 16+1 = 17 -->
+            <!-- Valor inicial: para 100 jogadores, JP = Math.round(100 * 0.167) + 1 = Math.round(16.7)+1 = 17 -->
           </div>
-
-          <!-- Botão Calcular -->
           <div class="col-md-3">
             <button class="btn btn-primary mt-4" id="calcular">Calcular</button>
           </div>
@@ -108,6 +103,7 @@
             </tfoot>
           </table>
         </div>
+
       </div>
     </div>
     <div class="footer">
@@ -116,6 +112,7 @@
   </div>
 
   <script>
+    // Função de arredondamento personalizada
     function arredondar(valor) {
       if (valor < 100) return Math.round(valor);
       if (valor < 500) return Math.round(valor / 5) * 5;
@@ -125,7 +122,21 @@
       return Math.round(valor / 100) * 100;
     }
 
-    // Função de cálculo da premiação
+    // Variável de override para jogadores premiados (null indica que a fórmula deve ser usada)
+    let overrideJogadoresPremiados = null;
+
+    // Função para calcular o número de jogadores premiados
+    function recalcularJogadoresPremiados() {
+      const jogadores = parseInt(document.getElementById("jogadores").value);
+      const calculado = Math.round(jogadores * 0.167) + 1;
+      if (overrideJogadoresPremiados === null) {
+        document.getElementById("jogadoresPremiados").value = calculado;
+        return calculado;
+      }
+      return overrideJogadoresPremiados;
+    }
+
+    // Função para calcular a premiação
     function calcularPremiacao(jogadores, jogadoresPremiados, premioTotal, rakePercentual, expoente) {
       const premioDisponivel = premioTotal * (1 - rakePercentual / 100);
       let pesos = [];
@@ -135,18 +146,15 @@
         pesos.push(peso);
         somaPesos += peso;
       }
-
       let premiacaoBruta = pesos.map(p => (p / somaPesos) * premioDisponivel);
       let premiacaoArredondada = premiacaoBruta.map(arredondar);
       let somaPremiacao = premiacaoArredondada.reduce((a, b) => a + b, 0);
 
       let sobra = premioTotal - somaPremiacao;
       let valorRake = 0;
-
       if (rakePercentual > 0) {
         valorRake = sobra;
       } else {
-        // Se não há rake, a sobra é adicionada ao último prêmio
         premiacaoArredondada[premiacaoArredondada.length - 1] += sobra;
       }
 
@@ -154,12 +162,11 @@
       let grupoAtual = { inicio: 1, fim: 1, valor: premiacaoArredondada[0] };
       let grupoValores = [premiacaoArredondada[0]];
 
+      // Agrupar a partir do 10º colocado
       for (let i = 1; i < premiacaoArredondada.length; i++) {
         const atual = premiacaoArredondada[i];
         const mediaGrupo = grupoValores.reduce((a, b) => a + b, 0) / grupoValores.length;
         const percentualDif = Math.abs(atual - mediaGrupo) / mediaGrupo;
-
-        // Agrupar somente se i >= 9 (a partir do 10º colocado)
         if (i >= 9 && percentualDif < 0.20) {
           grupoAtual.fim = i + 1;
           grupoValores.push(atual);
@@ -174,7 +181,6 @@
           grupoValores = [atual];
         }
       }
-      
       const totalGrupo = grupoValores.reduce((a, b) => a + b, 0);
       const mediaGrupo = totalGrupo / grupoValores.length;
       resultado.push({
@@ -182,27 +188,17 @@
         valor: mediaGrupo.toFixed(2),
         percentual: ((totalGrupo / premioTotal) * 100).toFixed(2) + "%"
       });
-      
       return { resultado, somaPremiacao, valorRake };
     }
 
-    // Recalcula automaticamente o número de jogadores premiados baseado na fórmula: 16,7% + 1
-    function recalcularJogadoresPremiados() {
-      const jogadores = parseInt(document.getElementById("jogadores").value);
-      const jp = Math.round(jogadores * 0.167) + 1;
-      document.getElementById("jogadoresPremiados").value = jp;
-      return jp;
-    }
-
-    // Atualiza a tabela com base nos valores atuais
+    // Função para atualizar a tabela com base nos parâmetros atuais
     function atualizarTabela() {
       const jogadores = parseInt(document.getElementById("jogadores").value);
       const premioTotal = parseFloat(document.getElementById("premioTotal").value);
       const rakePercentual = parseFloat(document.getElementById("rake").value);
       const expoente = parseFloat(document.getElementById("expoente").value);
-      const jogadoresPremiados = recalcularJogadoresPremiados();
-
-      const { resultado, somaPremiacao, valorRake } = calcularPremiacao(jogadores, jogadoresPremiados, premioTotal, rakePercentual, expoente);
+      const jp = recalcularJogadoresPremiados();
+      const { resultado, somaPremiacao, valorRake } = calcularPremiacao(jogadores, jp, premioTotal, rakePercentual, expoente);
 
       const corpoTabela = document.querySelector("#tabelaPremiacao tbody");
       corpoTabela.innerHTML = "";
@@ -215,14 +211,13 @@
       document.getElementById("percentualRake").innerText = `${((valorRake / premioTotal) * 100).toFixed(2)}%`;
     }
 
-    // Eventos dos botões de controle (dinâmicos)
+    // Eventos dos botões para ajustar expoente
     document.getElementById("increaseExpoente").addEventListener("click", function () {
       let expoente = parseFloat(document.getElementById("expoente").value);
       expoente += 0.02;
       document.getElementById("expoente").value = expoente.toFixed(2);
       atualizarTabela();
     });
-
     document.getElementById("decreaseExpoente").addEventListener("click", function () {
       let expoente = parseFloat(document.getElementById("expoente").value);
       expoente -= 0.02;
@@ -230,26 +225,33 @@
       atualizarTabela();
     });
 
+    // Eventos dos botões para ajustar jogadores premiados manualmente (override)
     document.getElementById("increaseJogadoresPremiados").addEventListener("click", function () {
-      let jp = parseInt(document.getElementById("jogadoresPremiados").value);
+      let jp = overrideJogadoresPremiados !== null ? overrideJogadoresPremiados : recalcularJogadoresPremiados();
       jp += 1;
+      overrideJogadoresPremiados = jp;
       document.getElementById("jogadoresPremiados").value = jp;
       atualizarTabela();
     });
-
     document.getElementById("decreaseJogadoresPremiados").addEventListener("click", function () {
-      let jp = parseInt(document.getElementById("jogadoresPremiados").value);
+      let jp = overrideJogadoresPremiados !== null ? overrideJogadoresPremiados : recalcularJogadoresPremiados();
       if (jp > 1) { jp -= 1; }
+      overrideJogadoresPremiados = jp;
       document.getElementById("jogadoresPremiados").value = jp;
       atualizarTabela();
     });
 
+    // Botão Calcular: reseta o override e recalcula automaticamente usando a fórmula
     document.getElementById("calcular").addEventListener("click", function () {
+      overrideJogadoresPremiados = null;
       atualizarTabela();
     });
 
     // Atualiza a tabela sempre que os inputs editáveis forem alterados
-    document.getElementById("jogadores").addEventListener("change", atualizarTabela);
+    document.getElementById("jogadores").addEventListener("change", function() {
+      overrideJogadoresPremiados = null;
+      atualizarTabela();
+    });
     document.getElementById("premioTotal").addEventListener("change", atualizarTabela);
     document.getElementById("rake").addEventListener("change", atualizarTabela);
 
