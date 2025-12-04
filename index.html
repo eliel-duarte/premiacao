@@ -135,6 +135,9 @@
     let confettiParticles = [];
     let confettiAnimationId = null;
 
+    // Confetti color palette - shared across all particles
+    const CONFETTI_COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+
     function resizeConfettiCanvas() {
       confettiCanvas.width = window.innerWidth;
       confettiCanvas.height = window.innerHeight;
@@ -145,14 +148,15 @@
     class ConfettiParticle {
       constructor() {
         this.x = Math.random() * confettiCanvas.width;
-        this.y = Math.random() * confettiCanvas.height - confettiCanvas.height;
+        // Start particles above the viewport (offscreen)
+        const startOffscreen = -confettiCanvas.height;
+        this.y = Math.random() * confettiCanvas.height + startOffscreen;
         this.size = Math.random() * 10 + 5;
         this.speedY = Math.random() * 3 + 2;
         this.speedX = Math.random() * 2 - 1;
         this.rotation = Math.random() * 360;
         this.rotationSpeed = Math.random() * 10 - 5;
-        this.colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-        this.color = this.colors[Math.floor(Math.random() * this.colors.length)];
+        this.color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
         this.shape = Math.floor(Math.random() * 3); // 0: rectangle, 1: circle, 2: star
       }
 
@@ -211,14 +215,14 @@
     function animateConfetti() {
       confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
 
-      confettiParticles.forEach((particle, index) => {
-        particle.update();
-        particle.draw();
+      // Update and draw all particles
+      for (let i = 0; i < confettiParticles.length; i++) {
+        confettiParticles[i].update();
+        confettiParticles[i].draw();
+      }
 
-        if (particle.y > confettiCanvas.height) {
-          confettiParticles.splice(index, 1);
-        }
-      });
+      // Filter out particles that have fallen off screen (avoiding array modification during iteration)
+      confettiParticles = confettiParticles.filter(particle => particle.y <= confettiCanvas.height);
 
       if (confettiParticles.length > 0) {
         confettiAnimationId = requestAnimationFrame(animateConfetti);
